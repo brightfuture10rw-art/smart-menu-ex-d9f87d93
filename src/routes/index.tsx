@@ -65,7 +65,13 @@ const MENU: { course: string; note: string; dishes: Dish[] }[] = [
   },
 ];
 const ALL = MENU.flatMap((c) => c.dishes);
-const fmt = (n: number) => `$${n.toLocaleString("en-US")}`;
+const RATE = 1450; // USD → RWF
+const fmt = (n: number) => `RWF ${(Math.round((n * RATE) / 1000) * 1000).toLocaleString("en-US")}`;
+const IMG: Record<string, string> = Object.fromEntries(
+  Object.entries(
+    import.meta.glob<string>("../assets/*.jpg", { eager: true, import: "default" }),
+  ).map(([p, url]) => [p.split("/").pop()!.replace(".jpg", ""), url]),
+);
 
 function Index() {
   const [cart, setCart] = useState<Record<string, number>>({});
@@ -118,24 +124,24 @@ function Index() {
               <h2 className="font-display text-4xl text-primary">{c.course}</h2>
               <p className="mt-2 text-xs uppercase tracking-[0.3em] text-muted-foreground">{c.note}</p>
             </div>
-            <ul className="space-y-8">
+            <ul className="grid gap-8 sm:grid-cols-2">
               {c.dishes.map((d) => (
-                <li key={d.id} className="group flex items-start gap-6">
-                  <div className="flex-1">
-                    <div className="flex items-baseline gap-3">
-                      <h3 className="font-display text-2xl">{d.name}</h3>
-                      <span className="flex-1 border-b border-dotted" />
+                <li key={d.id} className="flex flex-col border bg-card">
+                  <img src={IMG[d.id]} alt={d.name} loading="lazy" width={816} height={816}
+                    className="aspect-[4/3] w-full object-cover" />
+                  <div className="flex flex-1 flex-col p-5">
+                    <h3 className="font-display text-2xl">{d.name}</h3>
+                    <p className="mt-1 flex-1 text-sm font-light text-muted-foreground">{d.desc}</p>
+                    <div className="mt-4 flex items-center justify-between">
                       <span className="font-display text-xl text-primary">{fmt(d.price)}</span>
+                      <button
+                        onClick={() => add(d.id)}
+                        className={`border border-primary px-4 py-2 text-xs uppercase tracking-[0.2em] transition ${cart[d.id] ? "bg-primary text-primary-foreground" : "text-primary hover:bg-primary hover:text-primary-foreground"}`}
+                      >
+                        {cart[d.id] ? `Selected · ${cart[d.id]}` : "Select"}
+                      </button>
                     </div>
-                    <p className="mt-1 text-sm font-light text-muted-foreground">{d.desc}</p>
                   </div>
-                  <button
-                    onClick={() => add(d.id)}
-                    aria-label={`Add ${d.name}`}
-                    className="mt-1 h-9 w-9 shrink-0 border text-primary transition hover:border-primary hover:bg-primary hover:text-primary-foreground"
-                  >
-                    {cart[d.id] ? cart[d.id] : "+"}
-                  </button>
                 </li>
               ))}
             </ul>
