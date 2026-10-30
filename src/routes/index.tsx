@@ -1,5 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { COURSES, fmtRwf, imageFor, menuQuery } from "@/lib/menu";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -15,72 +17,22 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Dish = { id: string; name: string; desc: string; price: number };
-const MENU: { course: string; note: string; dishes: Dish[] }[] = [
-  {
-    course: "Caviar & Raw Bar",
-    note: "Served with blinis and crème fraîche",
-    dishes: [
-      { id: "c1", name: "Beluga Imperial, 50g", desc: "Iranian Beluga, warm buckwheat blinis, chive crème", price: 420 },
-      { id: "c2", name: "Oscietra Royal, 30g", desc: "Golden Oscietra, quail egg mimosa, brioche soldiers", price: 185 },
-      { id: "c3", name: "Gillardeau Oysters", desc: "Half dozen, mignonette of shallot and champagne", price: 68 },
-    ],
-  },
-  {
-    course: "Entrées",
-    note: "To begin",
-    dishes: [
-      { id: "e1", name: "Foie Gras Torchon", desc: "Sauternes gel, toasted brioche, fig compote", price: 64 },
-      { id: "e2", name: "Langoustine Carpaccio", desc: "Yuzu, Kristal caviar, shiso blossom", price: 72 },
-      { id: "e3", name: "White Truffle Velouté", desc: "Alba truffle shaved tableside, Jerusalem artichoke", price: 95 },
-    ],
-  },
-  {
-    course: "Plats Principaux",
-    note: "The heart of the meal",
-    dishes: [
-      { id: "m1", name: "A5 Kobe Wagyu, 150g", desc: "Charcoal-seared, smoked bone marrow jus, pommes soufflées", price: 290 },
-      { id: "m2", name: "Blue Lobster Thermidor", desc: "Brittany lobster, cognac cream, gruyère gratin", price: 168 },
-      { id: "m3", name: "Bresse Chicken en Vessie", desc: "Black truffle, vin jaune sauce, morels", price: 145 },
-      { id: "m4", name: "Wild Turbot", desc: "Champagne beurre blanc, sea herbs, Oscietra pearls", price: 128 },
-    ],
-  },
-  {
-    course: "Desserts",
-    note: "To finish",
-    dishes: [
-      { id: "d1", name: "Gold Leaf Chocolate Sphere", desc: "Grand cru Valrhona, 24k gold, warm caramel pour", price: 48 },
-      { id: "d2", name: "Soufflé au Grand Marnier", desc: "Vanilla bean crème anglaise", price: 36 },
-      { id: "d3", name: "Cheese Trolley Selection", desc: "Five affinés from Maître Antony, honeycomb", price: 42 },
-    ],
-  },
-  {
-    course: "Cellar",
-    note: "By the bottle",
-    dishes: [
-      { id: "w1", name: "Dom Pérignon 2013", desc: "Champagne, France", price: 520 },
-      { id: "w2", name: "Château Margaux 2010", desc: "Premier Grand Cru Classé, Bordeaux", price: 1450 },
-      { id: "w3", name: "Krug Grande Cuvée", desc: "Champagne, France", price: 480 },
-    ],
-  },
-];
-const ALL = MENU.flatMap((c) => c.dishes);
-const RATE = 1450; // USD → RWF
-const fmt = (n: number) => `RWF ${(Math.round((n * RATE) / 1000) * 1000).toLocaleString("en-US")}`;
-const IMG: Record<string, string> = Object.fromEntries(
-  Object.entries(
-    import.meta.glob<string>("../assets/*.jpg", { eager: true, import: "default" }),
-  ).map(([p, url]) => [p.split("/").pop()!.replace(".jpg", ""), url]),
-);
-
+type Dish = { id: string; name: string; desc: string; price: number; img?: string | undefined };
+const fmt = fmtRwf;
 function Index() {
   const [cart, setCart] = useState<Record<string, number>>({});
   const [open, setOpen] = useState(false);
   const [placed, setPlaced] = useState<string | null>(null);
+  const { data: rows = [], isLoading } = useQuery(menuQuery);
+  const ALL: Dish[] = rows.map((r) => ({ id: r.id, name: r.name, desc: r.description, price: r.price, img: imageFor(r) }));
+  const courses = [...COURSES, ...rows.map((r) => r.course).filter((c) => !COURSES.includes(c))];
+  const MENU = courses
+    .map((course) => ({ course, dishes: ALL.filter((_, i) => rows[i]!.course === course) }))
+    .filter((c) => c.dishes.length);
 
   const items = useMemo(
     () => ALL.filter((d) => cart[d.id]).map((d) => ({ ...d, qty: cart[d.id] ?? 0 })),
-    [cart],
+    [cart, rows],
   );
   const count = items.reduce((s, i) => s + i.qty, 0);
   const subtotal = items.reduce((s, i) => s + i.qty * i.price, 0);
@@ -118,16 +70,16 @@ function Index() {
       </section>
 
       <main className="mx-auto max-w-3xl space-y-24 px-6 pb-32">
+        {isLoading && <p className="text-center text-muted-foreground">Preparing the menu…</p>}
         {MENU.map((c) => (
           <section key={c.course}>
             <div className="mb-10 text-center">
               <h2 className="font-display text-4xl text-primary">{c.course}</h2>
-              <p className="mt-2 text-xs uppercase tracking-[0.3em] text-muted-foreground">{c.note}</p>
             </div>
             <ul className="grid gap-8 sm:grid-cols-2">
               {c.dishes.map((d) => (
                 <li key={d.id} className="flex flex-col border bg-card">
-                  <img src={IMG[d.id]} alt={d.name} loading="lazy" width={816} height={816}
+                  <img src={d.img} alt={d.name} loading="lazy" width={816} height={816}
                     className="aspect-[4/3] w-full object-cover" />
                   <div className="flex flex-1 flex-col p-5">
                     <h3 className="font-display text-2xl">{d.name}</h3>
@@ -150,7 +102,8 @@ function Index() {
       </main>
 
       <footer className="border-t py-10 text-center text-xs uppercase tracking-[0.3em] text-muted-foreground">
-        Maison Aurèle · 12 Avenue Montaigne · Daily 18:00 – 23:30
+        Maison Aurèle · 12 Avenue Montaigne · Daily 18:00 – 23:30 ·{" "}
+        <Link to="/admin" className="hover:text-primary">Staff</Link>
       </footer>
 
       {open && (
