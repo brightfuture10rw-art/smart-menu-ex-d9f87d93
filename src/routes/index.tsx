@@ -73,7 +73,7 @@ function Index() {
   const [placed, setPlaced] = useState<string | null>(null);
 
   const items = useMemo(
-    () => ALL.filter((d) => cart[d.id]).map((d) => ({ ...d, qty: cart[d.id] })),
+    () => ALL.filter((d) => cart[d.id]).map((d) => ({ ...d, qty: cart[d.id] ?? 0 })),
     [cart],
   );
   const count = items.reduce((s, i) => s + i.qty, 0);
