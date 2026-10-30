@@ -17,7 +17,7 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Dish = { id: string; name: string; desc: string; price: number; img?: string };
+type Dish = { id: string; name: string; desc: string; price: number; img?: string | undefined };
 const fmt = fmtRwf;
 function Index() {
   const [cart, setCart] = useState<Record<string, number>>({});
