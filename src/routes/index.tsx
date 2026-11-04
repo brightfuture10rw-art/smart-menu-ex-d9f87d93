@@ -27,7 +27,7 @@ function Index() {
   const [placed, setPlaced] = useState<string | null>(null);
   const { data: rows = [], isLoading } = useQuery(menuQuery);
   const ALL: Dish[] = rows.map((r) => ({ id: r.id, name: r.name, desc: r.description, price: r.price, img: imageFor(r) }));
-  const courses = [...COURSES, ...rows.map((r) => r.course).filter((c) => !COURSES.includes(c))];
+  const courses = [...new Set([...COURSES, ...rows.map((r) => r.course)])];
   const MENU = courses
     .map((course) => ({ course, dishes: ALL.filter((_, i) => rows[i]!.course === course) }))
     .filter((c) => c.dishes.length);
