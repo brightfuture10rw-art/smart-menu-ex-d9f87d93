@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { COURSES, fmtRwf, imageFor, menuQuery } from "@/lib/menu";
+import { Button } from "@/components/ui/button";
+import { LockKeyhole } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -49,14 +51,19 @@ function Index() {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-6 py-4">
           <span className="font-display text-2xl tracking-[0.3em] text-primary">MAISON AURÈLE</span>
+          <div className="flex items-center gap-3">
+          <Button asChild variant="ghost" className="text-primary">
+            <Link to="/admin"><LockKeyhole /> Admin login</Link>
+          </Button>
           <button
             onClick={() => setOpen(true)}
             className="border border-primary px-5 py-2 text-xs uppercase tracking-[0.25em] text-primary transition hover:bg-primary hover:text-primary-foreground"
           >
             Your Order ({count})
           </button>
+          </div>
         </div>
       </header>
 
@@ -103,7 +110,7 @@ function Index() {
 
       <footer className="border-t py-10 text-center text-xs uppercase tracking-[0.3em] text-muted-foreground">
         Maison Aurèle · 12 Avenue Montaigne · Daily 18:00 – 23:30 ·{" "}
-        <Link to="/admin" className="hover:text-primary">Staff</Link>
+        <Link to="/admin" className="hover:text-primary">Admin login</Link>
       </footer>
 
       {open && (
