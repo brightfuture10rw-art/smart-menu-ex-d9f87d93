@@ -4,6 +4,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { COURSES, imageFor, menuQuery, type MenuRow } from "@/lib/menu";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Plus, Save, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -95,11 +97,11 @@ function LoginForm() {
   return (
     <form onSubmit={submit} className="mx-auto max-w-sm space-y-4">
       <h1 className="text-center font-display text-4xl text-primary">
-        {mode === "in" ? "Staff Sign In" : "Create Admin Account"}
+        {mode === "in" ? "Admin Login" : "Create Staff Account"}
       </h1>
-      <input name="email" type="email" required placeholder="Email" className={input} />
-      <input name="password" type="password" required minLength={6} placeholder="Password" className={input} />
-      <button disabled={busy} className={`${btn} w-full`}>{mode === "in" ? "Sign in" : "Create account"}</button>
+      <label className="block space-y-2 text-sm">Email<input name="email" type="email" autoComplete="email" required placeholder="Email" className={input} /></label>
+      <label className="block space-y-2 text-sm">Password<input name="password" type="password" autoComplete={mode === "in" ? "current-password" : "new-password"} required minLength={6} placeholder="Password" className={input} /></label>
+      <Button disabled={busy} className="w-full">{busy ? "Please wait…" : mode === "in" ? "Sign in" : "Create account"}</Button>
       {msg && <p className="text-center text-sm text-muted-foreground">{msg}</p>}
       <button type="button" onClick={() => setMode(mode === "in" ? "up" : "in")}
         className="w-full text-center text-xs text-muted-foreground hover:text-primary">
@@ -111,22 +113,30 @@ function LoginForm() {
 
 function MenuEditor() {
   const qc = useQueryClient();
-  const { data: rows = [] } = useQuery(menuQuery);
+  const { data: rows = [], isLoading, error } = useQuery(menuQuery);
+  const [adding, setAdding] = useState(false);
   const refresh = () => qc.invalidateQueries({ queryKey: ["menu"] });
 
   async function addDish() {
+    setAdding(true);
     const sort = Math.max(0, ...rows.map((r) => r.sort)) + 1;
-    const { error } = await supabase.from("menu_items").insert({ course: COURSES[0]!, name: "New dish", price: 0, sort });
+    const { error } = await supabase.from("menu_items").insert({ course: COURSES[0] ?? "Entrées", name: "New dish", price: 0, sort });
+    setAdding(false);
     if (error) alert(error.message);
     refresh();
   }
 
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
-        <h1 className="font-display text-4xl text-primary">Edit the Menu</h1>
-        <button className={btn} onClick={addDish}>+ Add dish</button>
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <h1 className="font-display text-4xl text-primary">Manage Menu</h1>
+        <div className="flex gap-2">
+          <Button asChild variant="outline"><Link to="/"><ArrowLeft /> View menu</Link></Button>
+          <Button onClick={addDish} disabled={adding || isLoading}><Plus />{adding ? "Adding…" : "Add item"}</Button>
+        </div>
       </div>
+      {isLoading && <p className="text-muted-foreground">Loading menu…</p>}
+      {error && <p role="alert" className="text-destructive">The menu could not be loaded. Please try again.</p>}
       <div className="space-y-4">
         {rows.map((r) => <DishRow key={r.id} row={r} onChange={refresh} />)}
       </div>
@@ -137,47 +147,56 @@ function MenuEditor() {
 function DishRow({ row, onChange }: { row: MenuRow; onChange: () => void }) {
   const [d, setD] = useState(row);
   const [saved, setSaved] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
   const dirty = JSON.stringify(d) !== JSON.stringify(row);
 
   async function save() {
+    setBusy(true);
+    setMessage(null);
     const { error } = await supabase.from("menu_items").update({
       course: d.course, name: d.name, description: d.description,
-      price: Math.max(0, Math.round(d.price)), image_url: d.image_url || null,
+      price: Math.max(0, Math.round(d.price)), image_url: d.image_url || null, sort: d.sort,
     }).eq("id", row.id);
-    if (error) return alert(error.message);
+    setBusy(false);
+    if (error) return setMessage(error.message);
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
     onChange();
   }
   async function remove() {
     if (!confirm(`Remove "${row.name}" from the menu?`)) return;
+    setBusy(true);
     const { error } = await supabase.from("menu_items").delete().eq("id", row.id);
-    if (error) return alert(error.message);
+    setBusy(false);
+    if (error) return setMessage(error.message);
     onChange();
   }
 
   return (
-    <div className="flex flex-col gap-4 border bg-card p-4 md:flex-row">
+    <form onSubmit={(e) => { e.preventDefault(); void save(); }} className="flex flex-col gap-4 border bg-card p-4 md:flex-row">
       <img src={imageFor(d)} alt={d.name} className="h-28 w-28 shrink-0 object-cover" />
       <div className="grid flex-1 gap-3 md:grid-cols-2">
-        <input className={input} value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} placeholder="Name" />
-        <select className={`${input} bg-card`} value={d.course} onChange={(e) => setD({ ...d, course: e.target.value })}>
-          {COURSES.map((c) => <option key={c}>{c}</option>)}
-        </select>
-        <input className={`${input} md:col-span-2`} value={d.description}
-          onChange={(e) => setD({ ...d, description: e.target.value })} placeholder="Description" />
-        <label className="flex items-center gap-2 text-sm text-muted-foreground">
-          RWF
-          <input className={input} type="number" min={0} step={1000} value={d.price}
+        <label className="space-y-1 text-sm text-muted-foreground">Name<input className={input} required value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} placeholder="Name" /></label>
+        <label className="space-y-1 text-sm text-muted-foreground">Category<input className={input} required list={`courses-${row.id}`} value={d.course} onChange={(e) => setD({ ...d, course: e.target.value })} />
+          <datalist id={`courses-${row.id}`}>{COURSES.map((c) => <option key={c} value={c} />)}</datalist>
+        </label>
+        <label className="space-y-1 text-sm text-muted-foreground md:col-span-2">Description<textarea className={input} value={d.description}
+          onChange={(e) => setD({ ...d, description: e.target.value })} placeholder="Description" /></label>
+        <label className="space-y-1 text-sm text-muted-foreground">
+          Price (RWF)
+          <input className={input} required type="number" min={0} step={1} value={d.price}
             onChange={(e) => setD({ ...d, price: Number(e.target.value) })} />
         </label>
-        <input className={input} value={d.image_url ?? ""} placeholder="Photo link (optional)"
-          onChange={(e) => setD({ ...d, image_url: e.target.value })} />
+        <label className="space-y-1 text-sm text-muted-foreground">Display order<input className={input} required type="number" step={1} value={d.sort} onChange={(e) => setD({ ...d, sort: Number(e.target.value) })} /></label>
+        <label className="space-y-1 text-sm text-muted-foreground md:col-span-2">Photo link<input className={input} type="url" value={d.image_url ?? ""} placeholder="https://…"
+          onChange={(e) => setD({ ...d, image_url: e.target.value })} /></label>
+        {message && <p role="alert" className="text-sm text-destructive md:col-span-2">{message}</p>}
       </div>
       <div className="flex gap-2 md:flex-col">
-        <button className={btn} disabled={!dirty} onClick={save}>{saved ? "Saved" : "Save"}</button>
-        <button className="px-4 py-2 text-xs uppercase tracking-[0.2em] text-destructive" onClick={remove}>Delete</button>
+        <Button type="submit" disabled={!dirty || busy}><Save />{busy ? "Saving…" : saved ? "Saved" : "Save"}</Button>
+        <Button type="button" variant="ghost" className="text-destructive" disabled={busy} onClick={remove}><Trash2 />Delete</Button>
       </div>
-    </div>
+    </form>
   );
 }
