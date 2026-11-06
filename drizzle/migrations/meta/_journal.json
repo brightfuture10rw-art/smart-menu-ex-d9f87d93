@@ -8,6 +8,13 @@
       "when": 1793344787433,
       "tag": "0000_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793941009642,
+      "tag": "0001_add_addons_and_orders",
+      "breakpoints": true
     }
   ]
 }
