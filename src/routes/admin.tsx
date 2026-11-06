@@ -1,19 +1,21 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { COURSES, imageFor, menuQuery, type MenuRow } from "@/lib/menu";
+import { COURSES, addonsQuery, imageFor, menuQuery, type AddonRow, type MenuRow } from "@/lib/menu";
+import { finishOrder, ordersQuery, type OrderRow } from "@/lib/orders";
+import { fmtRwf } from "@/lib/menu";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Save, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
-      { title: "Staff Login — Maison Aurèle" },
-      { name: "description", content: "Staff area for managing the Maison Aurèle menu." },
-      { property: "og:title", content: "Staff Login — Maison Aurèle" },
-      { property: "og:description", content: "Manage dishes, prices and photos." },
+      { title: "Staff Area — Maison Aurèle" },
+      { name: "description", content: "Staff area for managing the Maison Aurèle menu and orders." },
+      { property: "og:title", content: "Staff Area — Maison Aurèle" },
+      { property: "og:description", content: "Manage dishes, prices, extras and orders." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
@@ -24,8 +26,7 @@ export const Route = createFileRoute("/admin")({
 
 const input =
   "w-full border bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus:border-primary";
-const btn =
-  "border border-primary px-4 py-2 text-xs uppercase tracking-[0.2em] text-primary transition hover:bg-primary hover:text-primary-foreground disabled:opacity-50";
+const fmt = fmtRwf;
 
 function Admin() {
   const [session, setSession] = useState<Session | null>(null);
@@ -54,60 +55,143 @@ function Admin() {
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <Link to="/" className="font-display text-2xl tracking-[0.3em] text-primary">MAISON AURÈLE</Link>
           {session && (
-            <button className={btn} onClick={() => supabase.auth.signOut()}>Sign out</button>
+            <button
+              className="border border-primary px-4 py-2 text-xs uppercase tracking-[0.2em] text-primary transition hover:bg-primary hover:text-primary-foreground"
+              onClick={() => supabase.auth.signOut()}
+            >
+              Sign out
+            </button>
           )}
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-6 py-12">
         {!ready ? null : !session ? (
-          <LoginForm />
+          <div className="mx-auto max-w-sm text-center">
+            <h1 className="font-display text-4xl text-primary">Staff Area</h1>
+            <p className="mt-4 text-sm text-muted-foreground">You need to sign in to continue.</p>
+            <Button asChild className="mt-6"><Link to="/login">Go to login</Link></Button>
+          </div>
         ) : isAdmin === null ? (
           <p className="text-muted-foreground">Checking access…</p>
         ) : !isAdmin ? (
           <p className="text-muted-foreground">This account doesn't have admin access.</p>
         ) : (
-          <MenuEditor />
+          <StaffArea />
         )}
       </main>
     </div>
   );
 }
 
-function LoginForm() {
-  const [mode, setMode] = useState<"in" | "up">("in");
-  const [msg, setMsg] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+function StaffArea() {
+  const [tab, setTab] = useState<"orders" | "menu">("orders");
+  const { data: orders = [] } = useQuery(ordersQuery);
+  const pendingCount = orders.filter((o) => o.status === "pending").length;
 
-  async function submit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const email = String(f.get("email"));
-    const password = String(f.get("password"));
-    setBusy(true);
-    setMsg(null);
-    const { data, error } =
-      mode === "in"
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/admin` } });
-    setBusy(false);
-    if (error) return setMsg(error.message);
-    if (mode === "up" && !data.session) setMsg("Check your email to confirm your account, then sign in.");
+  return (
+    <div>
+      <div className="mb-8 flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => setTab("orders")}
+          className={`border px-4 py-2 text-xs uppercase tracking-[0.2em] transition ${tab === "orders" ? "border-primary bg-primary text-primary-foreground" : "border-primary text-primary hover:bg-primary hover:text-primary-foreground"}`}
+        >
+          Orders{pendingCount > 0 ? ` (${pendingCount} new)` : ""}
+        </button>
+        <button
+          onClick={() => setTab("menu")}
+          className={`border px-4 py-2 text-xs uppercase tracking-[0.2em] transition ${tab === "menu" ? "border-primary bg-primary text-primary-foreground" : "border-primary text-primary hover:bg-primary hover:text-primary-foreground"}`}
+        >
+          Menu
+        </button>
+      </div>
+      {tab === "orders" ? <OrdersPanel /> : <MenuEditor />}
+    </div>
+  );
+}
+
+function OrdersPanel() {
+  const qc = useQueryClient();
+  const { data: orders = [], isLoading, error, refetch, isFetching } = useQuery({
+    ...ordersQuery,
+    refetchInterval: 15000,
+  });
+  const pending = orders.filter((o) => o.status === "pending");
+  const finished = orders.filter((o) => o.status === "finished");
+
+  async function done(id: string) {
+    try {
+      await finishOrder(id);
+      qc.invalidateQueries({ queryKey: ["orders"] });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Could not update the order.");
+    }
   }
 
   return (
-    <form onSubmit={submit} className="mx-auto max-w-sm space-y-4">
-      <h1 className="text-center font-display text-4xl text-primary">
-        {mode === "in" ? "Admin Login" : "Create Staff Account"}
-      </h1>
-      <label className="block space-y-2 text-sm">Email<input name="email" type="email" autoComplete="email" required placeholder="Email" className={input} /></label>
-      <label className="block space-y-2 text-sm">Password<input name="password" type="password" autoComplete={mode === "in" ? "current-password" : "new-password"} required minLength={6} placeholder="Password" className={input} /></label>
-      <Button disabled={busy} className="w-full">{busy ? "Please wait…" : mode === "in" ? "Sign in" : "Create account"}</Button>
-      {msg && <p className="text-center text-sm text-muted-foreground">{msg}</p>}
-      <button type="button" onClick={() => setMode(mode === "in" ? "up" : "in")}
-        className="w-full text-center text-xs text-muted-foreground hover:text-primary">
-        {mode === "in" ? "First time? Create the admin account" : "Already have an account? Sign in"}
-      </button>
-    </form>
+    <div>
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <h1 className="font-display text-4xl text-primary">Orders</h1>
+        <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
+          <RefreshCw />{isFetching ? "Refreshing…" : "Refresh"}
+        </Button>
+      </div>
+      {isLoading && <p className="text-muted-foreground">Loading orders…</p>}
+      {error && <p role="alert" className="text-destructive">Orders could not be loaded. Please try again.</p>}
+
+      <h2 className="mb-4 font-display text-2xl text-accent">Pending ({pending.length})</h2>
+      <div className="space-y-4">
+        {pending.length === 0 && !isLoading && (
+          <p className="text-sm text-muted-foreground">No pending orders right now.</p>
+        )}
+        {pending.map((o) => <OrderCard key={o.id} order={o} onDone={() => done(o.id)} />)}
+      </div>
+
+      <h2 className="mb-4 mt-12 font-display text-2xl text-accent">Finished ({finished.length})</h2>
+      <div className="space-y-4">
+        {finished.length === 0 && !isLoading && (
+          <p className="text-sm text-muted-foreground">No finished orders yet.</p>
+        )}
+        {finished.map((o) => <OrderCard key={o.id} order={o} />)}
+      </div>
+    </div>
+  );
+}
+
+function OrderCard({ order, onDone }: { order: OrderRow; onDone?: () => void }) {
+  return (
+    <div className="border bg-card p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <span className="border border-primary px-3 py-1 font-display text-lg text-primary">
+            Table {order.table_number}
+          </span>
+          <span className="ml-3 font-display text-xl">{order.customer_name}</span>
+          <span className="ml-2 text-sm text-muted-foreground">{order.phone}</span>
+        </div>
+        <span className="text-xs text-muted-foreground">
+          {new Date(order.created_at).toLocaleString()}
+        </span>
+      </div>
+      <ul className="mt-4 space-y-1 text-sm">
+        {order.items.map((i, idx) => (
+          <li key={idx}>
+            <div className="flex justify-between">
+              <span>{i.qty} × {i.name}</span>
+              <span>{fmt(i.line)}</span>
+            </div>
+            {i.addons.map((a) => (
+              <p key={a.name} className="pl-6 text-xs text-muted-foreground">
+                + {a.name} ({fmt(a.price)})
+              </p>
+            ))}
+          </li>
+        ))}
+      </ul>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-3">
+        <span className="font-display text-xl text-primary">Total {fmt(order.total)}</span>
+        {onDone && <Button onClick={onDone}>Mark as served</Button>}
+      </div>
+    </div>
   );
 }
 
@@ -191,6 +275,7 @@ function DishRow({ row, onChange }: { row: MenuRow; onChange: () => void }) {
         <label className="space-y-1 text-sm text-muted-foreground">Display order<input className={input} required type="number" step={1} value={d.sort} onChange={(e) => setD({ ...d, sort: Number(e.target.value) })} /></label>
         <label className="space-y-1 text-sm text-muted-foreground md:col-span-2">Photo link<input className={input} type="url" value={d.image_url ?? ""} placeholder="https://…"
           onChange={(e) => setD({ ...d, image_url: e.target.value })} /></label>
+        <AddonsEditor dishId={row.id} />
         {message && <p role="alert" className="text-sm text-destructive md:col-span-2">{message}</p>}
       </div>
       <div className="flex gap-2 md:flex-col">
@@ -198,5 +283,66 @@ function DishRow({ row, onChange }: { row: MenuRow; onChange: () => void }) {
         <Button type="button" variant="ghost" className="text-destructive" disabled={busy} onClick={remove}><Trash2 />Delete</Button>
       </div>
     </form>
+  );
+}
+
+function AddonsEditor({ dishId }: { dishId: string }) {
+  const qc = useQueryClient();
+  const { data: addons = [] } = useQuery(addonsQuery);
+  const mine = addons.filter((a) => a.menu_item_id === dishId);
+  const refresh = () => qc.invalidateQueries({ queryKey: ["addons"] });
+
+  async function add() {
+    const { error } = await supabase
+      .from("menu_addons")
+      .insert({ menu_item_id: dishId, name: "New extra", price: 0, sort: mine.length + 1 });
+    if (error) alert(error.message);
+    refresh();
+  }
+
+  return (
+    <div className="space-y-2 md:col-span-2">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-muted-foreground">Extras (add-ons) — guests pick these and the price adds up automatically</span>
+        <button type="button" onClick={add} className="shrink-0 text-xs text-primary hover:underline">+ Add extra</button>
+      </div>
+      {mine.map((a) => <AddonEditor key={a.id} addon={a} onChange={refresh} />)}
+    </div>
+  );
+}
+
+function AddonEditor({ addon, onChange }: { addon: AddonRow; onChange: () => void }) {
+  const [name, setName] = useState(addon.name);
+  const [price, setPrice] = useState(addon.price);
+  const [busy, setBusy] = useState(false);
+  const dirty = name !== addon.name || price !== addon.price;
+
+  async function save() {
+    setBusy(true);
+    const { error } = await supabase
+      .from("menu_addons")
+      .update({ name, price: Math.max(0, Math.round(price)) })
+      .eq("id", addon.id);
+    setBusy(false);
+    if (error) return alert(error.message);
+    onChange();
+  }
+  async function remove() {
+    if (!confirm(`Remove the extra "${addon.name}"?`)) return;
+    setBusy(true);
+    const { error } = await supabase.from("menu_addons").delete().eq("id", addon.id);
+    setBusy(false);
+    if (error) return alert(error.message);
+    onChange();
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <input className={input} value={name} onChange={(e) => setName(e.target.value)} placeholder="Extra name" />
+      <input className={`${input} w-32`} type="number" min={0} step={1} value={price}
+        onChange={(e) => setPrice(Number(e.target.value))} placeholder="Price" />
+      <Button type="button" variant="outline" disabled={!dirty || busy} onClick={save}>Save</Button>
+      <Button type="button" variant="ghost" className="text-destructive" disabled={busy} onClick={remove}><Trash2 /></Button>
+    </div>
   );
 }
