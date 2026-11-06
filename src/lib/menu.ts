@@ -32,3 +32,20 @@ export const menuQuery = {
     return data as MenuRow[];
   },
 };
+
+export type AddonRow = {
+  id: string;
+  menu_item_id: string;
+  name: string;
+  price: number;
+  sort: number;
+};
+
+export const addonsQuery = {
+  queryKey: ["addons"],
+  queryFn: async (): Promise<AddonRow[]> => {
+    const { data, error } = await supabase.from("menu_addons").select("*").order("sort");
+    if (error) throw error;
+    return data as AddonRow[];
+  },
+};

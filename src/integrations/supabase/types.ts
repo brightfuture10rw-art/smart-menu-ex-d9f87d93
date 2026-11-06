@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      menu_addons: {
+        Row: {
+          created_at: string
+          id: string
+          menu_item_id: string
+          name: string
+          price: number
+          sort: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          menu_item_id: string
+          name: string
+          price?: number
+          sort?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          menu_item_id?: string
+          name?: string
+          price?: number
+          sort?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_addons_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_items: {
         Row: {
           course: string
@@ -47,6 +82,45 @@ export type Database = {
           name?: string
           price?: number
           sort?: number
+        }
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          created_at: string
+          customer_name: string
+          id: string
+          items: Json
+          phone: string
+          service: number
+          status: string
+          subtotal: number
+          table_number: string
+          total: number
+        }
+        Insert: {
+          created_at?: string
+          customer_name: string
+          id?: string
+          items?: Json
+          phone: string
+          service?: number
+          status?: string
+          subtotal?: number
+          table_number: string
+          total?: number
+        }
+        Update: {
+          created_at?: string
+          customer_name?: string
+          id?: string
+          items?: Json
+          phone?: string
+          service?: number
+          status?: string
+          subtotal?: number
+          table_number?: string
+          total?: number
         }
         Relationships: []
       }
