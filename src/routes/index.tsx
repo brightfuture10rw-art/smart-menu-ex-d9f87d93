@@ -290,12 +290,14 @@ function OrderForm({
         <div className="flex justify-between font-display text-2xl text-primary"><span>Total</span><span>{fmt(subtotal + service)}</span></div>
       </div>
       <form className="mt-6 space-y-3" onSubmit={submit}>
-        {[
-          ["name", "Full name", "text", true],
-          ["phone", "Phone (optional)", "tel", false],
-          ["table", "Your table number", "text", true],
-        ].map(([n, p, t, req]) => (
-          <input key={n} name={n} type={t} required={req as boolean} placeholder={p as string}
+        {(
+          [
+            ["name", "Full name", "text", true],
+            ["phone", "Phone (optional)", "tel", false],
+            ["table", "Your table number", "text", true],
+          ] as [string, string, string, boolean][]
+        ).map(([n, p, t, req]) => (
+          <input key={n} name={n} type={t} required={req} placeholder={p}
             className="w-full border bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus:border-primary" />
         ))}
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
