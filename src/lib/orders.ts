@@ -36,7 +36,6 @@ export const ordersQuery = {
 
 export async function placeOrder(o: {
   customer_name: string;
-  phone: string;
   table_number: string;
   items: OrderItem[];
   subtotal: number;

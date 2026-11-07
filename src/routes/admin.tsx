@@ -166,7 +166,6 @@ function OrderCard({ order, onDone }: { order: OrderRow; onDone?: () => void }) 
             Table {order.table_number}
           </span>
           <span className="ml-3 font-display text-xl">{order.customer_name}</span>
-          <span className="ml-2 text-sm text-muted-foreground">{order.phone}</span>
         </div>
         <span className="text-xs text-muted-foreground">
           {new Date(order.created_at).toLocaleString()}
