@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Staff Login — Maison Aurèle" },
+      { title: "Admin Login — Maison Aurèle" },
       { name: "description", content: "Sign in to the Maison Aurèle staff area." },
-      { property: "og:title", content: "Staff Login — Maison Aurèle" },
+      { property: "og:title", content: "Admin Login — Maison Aurèle" },
       { property: "og:description", content: "Sign in to manage the menu and orders." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -62,7 +62,7 @@ function Login() {
       </header>
       <main className="flex flex-1 items-center justify-center px-6 py-12">
         <form onSubmit={submit} className="w-full max-w-sm space-y-4">
-          <h1 className="text-center font-display text-4xl text-primary">Staff Login</h1>
+           <h1 className="text-center font-display text-4xl text-primary">Admin Login</h1>
           <p className="text-center text-sm text-muted-foreground">
             Sign in to manage the menu and see incoming orders.
           </p>
