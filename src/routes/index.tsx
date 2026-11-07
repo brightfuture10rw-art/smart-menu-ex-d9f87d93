@@ -248,7 +248,6 @@ function OrderForm({
     try {
       await placeOrder({
         customer_name: String(f.get("name")),
-        phone: String(f.get("phone")),
         table_number: String(f.get("table")),
         items: orderItems,
         subtotal,
@@ -292,9 +291,8 @@ function OrderForm({
       <form className="mt-6 space-y-3" onSubmit={submit}>
         {(
           [
-            ["name", "Full name", "text", true],
-            ["phone", "Phone (optional)", "tel", false],
-            ["table", "Your table number", "text", true],
+          ["name", "Full name", "text", true],
+          ["table", "Your table number", "text", true],
           ] as [string, string, string, boolean][]
         ).map(([n, p, t, req]) => (
           <input key={n} name={n} type={t} required={req} placeholder={p}
