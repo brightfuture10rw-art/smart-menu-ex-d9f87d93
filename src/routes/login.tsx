@@ -77,6 +77,24 @@ function Login() {
           <Button disabled={busy} className="w-full">
             {busy ? "Signing in…" : "Sign in"}
           </Button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async (e) => {
+              const form = (e.currentTarget as HTMLButtonElement).form;
+              const email = form ? String(new FormData(form).get("email") || "") : "";
+              if (!email) return setMsg("Enter your email above first, then tap “Forgot password”.");
+              setBusy(true);
+              const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${window.location.origin}/reset-password`,
+              });
+              setBusy(false);
+              setMsg(error ? error.message : "Check your email for a link to set a new password.");
+            }}
+            className="block w-full text-center text-xs text-muted-foreground underline hover:text-primary"
+          >
+            Forgot password?
+          </button>
           {msg && <p role="alert" className="text-center text-sm text-muted-foreground">{msg}</p>}
           <Link to="/" className="block text-center text-xs text-muted-foreground hover:text-primary">
             ← Back to the menu
