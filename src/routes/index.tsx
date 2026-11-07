@@ -291,11 +291,11 @@ function OrderForm({
       </div>
       <form className="mt-6 space-y-3" onSubmit={submit}>
         {[
-          ["name", "Full name", "text"],
-          ["phone", "Phone", "tel"],
-          ["table", "Your table number", "text"],
-        ].map(([n, p, t]) => (
-          <input key={n} name={n} type={t} required placeholder={p}
+          ["name", "Full name", "text", true],
+          ["phone", "Phone (optional)", "tel", false],
+          ["table", "Your table number", "text", true],
+        ].map(([n, p, t, req]) => (
+          <input key={n} name={n} type={t} required={req as boolean} placeholder={p as string}
             className="w-full border bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus:border-primary" />
         ))}
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
