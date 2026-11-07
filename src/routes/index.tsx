@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { COURSES, addonsQuery, fmtRwf, imageFor, menuQuery, type AddonRow } from "@/lib/menu";
@@ -176,6 +176,7 @@ function Index() {
 
       <footer className="border-t py-10 text-center text-xs uppercase tracking-[0.3em] text-muted-foreground">
         Maison Aurèle · 12 Avenue Montaigne · Daily 18:00 – 23:30
+        <div className="mt-4"><Link to="/login" className="text-primary hover:underline">Login</Link></div>
       </footer>
 
       {open && (
