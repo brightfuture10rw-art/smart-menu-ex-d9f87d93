@@ -12,7 +12,6 @@ export type OrderItem = {
 export type OrderRow = {
   id: string;
   customer_name: string;
-  phone: string;
   table_number: string;
   items: OrderItem[];
   subtotal: number;
