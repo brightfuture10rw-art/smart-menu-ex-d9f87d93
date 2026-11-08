@@ -84,7 +84,7 @@ function Admin() {
 }
 
 function StaffArea() {
-  const [tab, setTab] = useState<"orders" | "menu">("orders");
+  const [tab, setTab] = useState<"orders" | "menu" | "account">("orders");
   const { data: orders = [] } = useQuery(ordersQuery);
   const pendingCount = orders.filter((o) => o.status === "pending").length;
 
@@ -103,8 +103,14 @@ function StaffArea() {
         >
           Menu
         </button>
+        <button
+          onClick={() => setTab("account")}
+          className={`border px-4 py-2 text-xs uppercase tracking-[0.2em] transition ${tab === "account" ? "border-primary bg-primary text-primary-foreground" : "border-primary text-primary hover:bg-primary hover:text-primary-foreground"}`}
+        >
+          My account
+        </button>
       </div>
-      {tab === "orders" ? <OrdersPanel /> : <MenuEditor />}
+      {tab === "orders" ? <OrdersPanel /> : tab === "menu" ? <MenuEditor /> : <AccountPanel />}
     </div>
   );
 }
@@ -347,6 +353,52 @@ function AddonEditor({ addon, onChange }: { addon: AddonRow; onChange: () => voi
         onChange={(e) => setPrice(Number(e.target.value))} placeholder="Price" />
       <Button type="button" variant="outline" disabled={!dirty || busy} onClick={save}>Save</Button>
       <Button type="button" variant="ghost" className="text-destructive" disabled={busy} onClick={remove}><Trash2 /></Button>
+    </div>
+  );
+}
+
+function AccountPanel() {
+  const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [email, setEmail] = useState("");
+  useEffect(() => { supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? "")); }, []);
+
+  async function changeEmail(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const next = String(new FormData(e.currentTarget).get("email"));
+    setBusy(true);
+    const { error } = await supabase.auth.updateUser({ email: next });
+    setBusy(false);
+    setMsg(error ? error.message : `Check both inboxes (${email} and ${next}) and click the confirmation links. After that, use ${next} to log in.`);
+  }
+  async function changePassword(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const password = String(f.get("password"));
+    if (password !== String(f.get("confirm"))) return setMsg("The two new passwords are not the same.");
+    setBusy(true);
+    const { error } = await supabase.auth.updateUser({ password, current_password: String(f.get("current")) } as never);
+    setBusy(false);
+    if (!error) e.currentTarget.reset();
+    setMsg(error ? error.message : "Password changed. Use the new password next time you log in.");
+  }
+
+  return (
+    <div className="grid max-w-3xl gap-10 md:grid-cols-2">
+      <form onSubmit={changeEmail} className="space-y-3">
+        <h2 className="font-display text-2xl text-primary">Change admin email</h2>
+        <p className="text-sm text-muted-foreground">Current: {email}</p>
+        <input name="email" type="email" required placeholder="New email" className={input} />
+        <Button disabled={busy}>Change email</Button>
+      </form>
+      <form onSubmit={changePassword} className="space-y-3">
+        <h2 className="font-display text-2xl text-primary">Change password</h2>
+        <input name="current" type="password" required placeholder="Current password" className={input} />
+        <input name="password" type="password" required minLength={6} placeholder="New password" className={input} />
+        <input name="confirm" type="password" required minLength={6} placeholder="New password again" className={input} />
+        <Button disabled={busy}>Change password</Button>
+      </form>
+      {msg && <p role="alert" className="text-sm text-muted-foreground md:col-span-2">{msg}</p>}
     </div>
   );
 }
