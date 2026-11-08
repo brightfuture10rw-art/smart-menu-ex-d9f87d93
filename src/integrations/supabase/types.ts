@@ -91,7 +91,7 @@ export type Database = {
           customer_name: string
           id: string
           items: Json
-          phone: string
+          phone: string | null
           service: number
           status: string
           subtotal: number
@@ -103,7 +103,7 @@ export type Database = {
           customer_name: string
           id?: string
           items?: Json
-          phone: string
+          phone?: string | null
           service?: number
           status?: string
           subtotal?: number
@@ -115,7 +115,7 @@ export type Database = {
           customer_name?: string
           id?: string
           items?: Json
-          phone?: string
+          phone?: string | null
           service?: number
           status?: string
           subtotal?: number
