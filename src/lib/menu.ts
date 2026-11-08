@@ -5,6 +5,8 @@ export type MenuRow = {
   course: string;
   name: string;
   description: string;
+  name_fr: string;
+  description_fr: string;
   price: number;
   image_key: string | null;
   image_url: string | null;
@@ -37,6 +39,7 @@ export type AddonRow = {
   id: string;
   menu_item_id: string;
   name: string;
+  name_fr: string;
   price: number;
   sort: number;
 };

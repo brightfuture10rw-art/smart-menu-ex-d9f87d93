@@ -20,6 +20,7 @@ export type Database = {
           id: string
           menu_item_id: string
           name: string
+          name_fr: string
           price: number
           sort: number
         }
@@ -28,6 +29,7 @@ export type Database = {
           id?: string
           menu_item_id: string
           name: string
+          name_fr?: string
           price?: number
           sort?: number
         }
@@ -36,6 +38,7 @@ export type Database = {
           id?: string
           menu_item_id?: string
           name?: string
+          name_fr?: string
           price?: number
           sort?: number
         }
@@ -54,10 +57,12 @@ export type Database = {
           course: string
           created_at: string
           description: string
+          description_fr: string
           id: string
           image_key: string | null
           image_url: string | null
           name: string
+          name_fr: string
           price: number
           sort: number
         }
@@ -65,10 +70,12 @@ export type Database = {
           course: string
           created_at?: string
           description?: string
+          description_fr?: string
           id?: string
           image_key?: string | null
           image_url?: string | null
           name: string
+          name_fr?: string
           price?: number
           sort?: number
         }
@@ -76,10 +83,12 @@ export type Database = {
           course?: string
           created_at?: string
           description?: string
+          description_fr?: string
           id?: string
           image_key?: string | null
           image_url?: string | null
           name?: string
+          name_fr?: string
           price?: number
           sort?: number
         }

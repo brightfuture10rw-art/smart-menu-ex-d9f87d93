@@ -1,0 +1,2 @@
+ALTER TABLE public.menu_items ADD COLUMN name_fr text NOT NULL DEFAULT '', ADD COLUMN description_fr text NOT NULL DEFAULT '';
+ALTER TABLE public.menu_addons ADD COLUMN name_fr text NOT NULL DEFAULT '';
