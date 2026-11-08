@@ -238,7 +238,7 @@ function DishRow({ row, onChange }: { row: MenuRow; onChange: () => void }) {
     setBusy(true);
     setMessage(null);
     const { error } = await supabase.from("menu_items").update({
-      course: d.course, name: d.name, description: d.description,
+      course: d.course, name: d.name, description: d.description, name_fr: d.name_fr, description_fr: d.description_fr,
       price: Math.max(0, Math.round(d.price)), image_url: d.image_url || null, sort: d.sort,
     }).eq("id", row.id);
     setBusy(false);
@@ -261,11 +261,14 @@ function DishRow({ row, onChange }: { row: MenuRow; onChange: () => void }) {
       <img src={imageFor(d)} alt={d.name} className="h-28 w-28 shrink-0 object-cover" />
       <div className="grid flex-1 gap-3 md:grid-cols-2">
         <label className="space-y-1 text-sm text-muted-foreground">Name<input className={input} required value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} placeholder="Name" /></label>
+        <label className="space-y-1 text-sm text-muted-foreground">Nom (français)<input className={input} value={d.name_fr} onChange={(e) => setD({ ...d, name_fr: e.target.value })} placeholder="Nom en français" /></label>
         <label className="space-y-1 text-sm text-muted-foreground">Category<input className={input} required list={`courses-${row.id}`} value={d.course} onChange={(e) => setD({ ...d, course: e.target.value })} />
           <datalist id={`courses-${row.id}`}>{COURSES.map((c) => <option key={c} value={c} />)}</datalist>
         </label>
         <label className="space-y-1 text-sm text-muted-foreground md:col-span-2">Description<textarea className={input} value={d.description}
           onChange={(e) => setD({ ...d, description: e.target.value })} placeholder="Description" /></label>
+        <label className="space-y-1 text-sm text-muted-foreground md:col-span-2">Description (français)<textarea className={input} value={d.description_fr}
+          onChange={(e) => setD({ ...d, description_fr: e.target.value })} placeholder="Description en français" /></label>
         <label className="space-y-1 text-sm text-muted-foreground">
           Price (RWF)
           <input className={input} required type="number" min={0} step={1} value={d.price}
@@ -312,15 +315,16 @@ function AddonsEditor({ dishId }: { dishId: string }) {
 
 function AddonEditor({ addon, onChange }: { addon: AddonRow; onChange: () => void }) {
   const [name, setName] = useState(addon.name);
+  const [nameFr, setNameFr] = useState(addon.name_fr);
   const [price, setPrice] = useState(addon.price);
   const [busy, setBusy] = useState(false);
-  const dirty = name !== addon.name || price !== addon.price;
+  const dirty = name !== addon.name || nameFr !== addon.name_fr || price !== addon.price;
 
   async function save() {
     setBusy(true);
     const { error } = await supabase
       .from("menu_addons")
-      .update({ name, price: Math.max(0, Math.round(price)) })
+      .update({ name, name_fr: nameFr, price: Math.max(0, Math.round(price)) })
       .eq("id", addon.id);
     setBusy(false);
     if (error) return alert(error.message);
@@ -337,7 +341,8 @@ function AddonEditor({ addon, onChange }: { addon: AddonRow; onChange: () => voi
 
   return (
     <div className="flex items-center gap-2">
-      <input className={input} value={name} onChange={(e) => setName(e.target.value)} placeholder="Extra name" />
+      <input className={input} value={name} onChange={(e) => setName(e.target.value)} placeholder="Extra name (English)" />
+      <input className={input} value={nameFr} onChange={(e) => setNameFr(e.target.value)} placeholder="Nom (français)" />
       <input className={`${input} w-32`} type="number" min={0} step={1} value={price}
         onChange={(e) => setPrice(Number(e.target.value))} placeholder="Price" />
       <Button type="button" variant="outline" disabled={!dirty || busy} onClick={save}>Save</Button>

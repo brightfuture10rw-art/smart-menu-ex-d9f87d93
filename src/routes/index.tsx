@@ -66,12 +66,18 @@ function Index() {
   const [lang, setLang] = useState<Lang | null>(null);
   const [langReady, setLangReady] = useState(false);
   useEffect(() => {
-    const saved = localStorage.getItem("lang");
+    let saved: string | null = null;
+    try { saved = localStorage.getItem("lang"); } catch {}
+    if (!saved) saved = document.cookie.match(/(?:^|; )lang=(en|fr)/)?.[1] ?? null;
     if (saved === "en" || saved === "fr") setLang(saved);
     setLangReady(true);
   }, []);
   useEffect(() => { if (lang) document.documentElement.lang = lang; }, [lang]);
-  const pickLang = (l: Lang) => { localStorage.setItem("lang", l); setLang(l); };
+  const pickLang = (l: Lang) => {
+    try { localStorage.setItem("lang", l); } catch {}
+    document.cookie = `lang=${l}; path=/; max-age=31536000; SameSite=None; Secure`;
+    setLang(l);
+  };
   const t = T[lang ?? "en"];
   const [cart, setCart] = useState<Record<string, Sel>>({});
   const [open, setOpen] = useState(false);
@@ -86,7 +92,9 @@ function Index() {
   const addonsFor = (dishId: string): AddonRow[] =>
     addonRows.filter((a) => a.menu_item_id === dishId);
 
-  const ALL: Dish[] = rows.map((r) => ({ id: r.id, name: r.name, desc: r.description, price: r.price, img: imageFor(r) }));
+  const fr = lang === "fr";
+  const aName = (a: AddonRow) => (fr && a.name_fr) || a.name;
+  const ALL: Dish[] = rows.map((r) => ({ id: r.id, name: (fr && r.name_fr) || r.name, desc: (fr && r.description_fr) || r.description, price: r.price, img: imageFor(r) }));
   const courses = [...new Set([...COURSES, ...rows.map((r) => r.course)])];
   const MENU = courses
     .map((course) => ({ course, dishes: ALL.filter((_, i) => rows[i]!.course === course) }))
@@ -107,10 +115,10 @@ function Index() {
           addonList: sel.addons
             .map((id) => addonById[id])
             .filter((a): a is AddonRow => !!a)
-            .map((a) => ({ name: a.name, price: a.price })),
+            .map((a) => ({ name: aName(a), price: a.price })),
         };
       }),
-    [cart, rows, addonById],
+    [cart, rows, addonById, lang],
   );
   const count = items.reduce((s, i) => s + i.qty, 0);
   const subtotal = items.reduce((s, i) => s + i.qty * i.unit, 0);
@@ -203,7 +211,7 @@ function Index() {
                                   onChange={() => toggleAddon(d.id, a.id)}
                                   className="accent-[hsl(var(--primary))]"
                                 />
-                                {a.name}
+                                {aName(a)}
                               </span>
                               <span className="text-muted-foreground">+{fmt(a.price)}</span>
                             </label>
